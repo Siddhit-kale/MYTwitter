@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "405054585203",
+    "project_id": "mytwitter-605c1",
+    "storage_bucket": "mytwitter-605c1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:405054585203:android:7500868e3a1a849fd42d06",
+        "android_client_info": {
+          "package_name": "com.MYTwitter.siddhit.mytwitter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1zv5jZws0lK6stNQGeuWIlJFX_MC1saw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
