@@ -52,8 +52,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
         // once registered, create and save user profile in database
         await _db.saveUserInfoInFirebase(
-            name: emailController.text, 
-            email: pwController.text
+            name: nameController.text, 
+            email: emailController.text
           );
 
         // everythime we add a new package, it's will restart the app

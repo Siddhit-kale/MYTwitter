@@ -14,6 +14,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mytwitter/models/user.dart';
+import 'package:mytwitter/services/auth/auth_service.dart';
 
 class DatabaseService {
   // get instance of firestore db and auth
@@ -46,20 +47,33 @@ class DatabaseService {
     final userMap = user.toMap();
 
     // save user info in firebase
-    await _db.collection("users").doc(uid).set(userMap);
+    await _db.collection("Users").doc(uid).set(userMap);
   }
 
   // get user info
   Future<UserProfile?> getUserfromFirebase(String uid) async {
     try {
       // retrieve user info from firebase
-      DocumentSnapshot userdoc = await _db.collection("Users").doc(uid).get();
+      DocumentSnapshot userDoc = await _db.collection("Users").doc(uid).get();
 
       // convert doc to user profile
-      return UserProfile.fromDocumnet(userdoc);
+      return UserProfile.fromDocumnet(userDoc);
     } catch (e) {
       print(e);
       return null;
+    }
+  }
+
+  // update user bio
+  Future<void> updateUserBioinFirebase(String bio) async {
+    // get current info
+    String uid = AuthService().getCurrentUid();
+
+    // attempts to update in firebase
+    try {
+      await _db.collection("Users").doc(uid).update({'bio': bio});
+    } catch (e) {
+      print(e);
     }
   }
 

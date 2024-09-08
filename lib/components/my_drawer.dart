@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytwitter/components/my_drawer_title.dart';
+import 'package:mytwitter/pages/profile_page.dart';
 import 'package:mytwitter/pages/settings_page.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
 
@@ -54,6 +55,23 @@ class MyDrawer extends StatelessWidget {
               ),
 
               //Profile list title
+              MyDrawerTitle(
+                title: "P R O F I L E",
+                icon: Icons.person,
+                onTap: () {
+                  //pop menu drawer
+                  Navigator.pop(context);
+
+                  // go to the profile page
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              ProfilePage(uid: _auth.getCurrentUid()),
+                              ),
+                       );
+                },
+              ),
 
               //search list title
 
@@ -77,9 +95,7 @@ class MyDrawer extends StatelessWidget {
 
               // Logout list title
               MyDrawerTitle(
-                  title: "L O G O U T",
-                  icon: Icons.logout, 
-                  onTap: logout),
+                  title: "L O G O U T", icon: Icons.logout, onTap: logout),
             ],
           ),
         ),
