@@ -11,8 +11,11 @@
 
  */
 
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/models/user.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
 
@@ -80,6 +83,46 @@ class DatabaseService {
   /*
       Post Message
   */
+
+  // post a message
+  Future<void> postMessageInFirebase(String message) async {
+    try {
+      // get current user id
+      String uid = _auth.currentUser!.uid;
+
+      // use this uid to get the user's profile'
+      UserProfile? user = await getUserfromFirebase(uid);
+
+      // create a new post
+      Post newPost = Post(
+        id: '',
+        uid: uid,
+        name: user!.name,
+        username: user.username,
+        message: message,
+        timestamp: Timestamp.now(),
+        lineCount: 0,
+        likeBy: [],
+      );
+
+      // convert post object -> map
+      Map<String, dynamic> newPostMap = newPost.toMap();
+
+      // add to firebase
+      await _db.collection("Posts").add(newPostMap);
+    }
+
+    // catch any errors..
+    catch (e) {
+      print(e);
+    }
+  }
+
+  // delete a message
+
+  // Get all posts true firebase
+
+  // get individual post
 
   /*
       Likes

@@ -7,6 +7,7 @@
 */
 
 import 'package:flutter/material.dart';
+import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/models/user.dart';
 import 'package:mytwitter/services/database/database_service.dart';
 
@@ -27,4 +28,23 @@ class DatabaseProvider extends ChangeNotifier {
 
   // update user bio
   Future<void> updateBio(String bio) => _db.updateUserBioinFirebase(bio);
+
+  /*
+    POSTS
+
+  */
+
+  // local list of posts
+  List<Post> _allPosts = [];
+
+  // get posts
+  List<Post> get allPosts => _allPosts;
+
+  // post message
+  Future<void> postMessage(String message) async {
+    // post message in firebase
+    await _db.postMessageInFirebase(message);
+  }
+
+  // fecth all posts
 }

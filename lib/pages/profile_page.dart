@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mytwitter/components/my_bio_box.dart';
+import 'package:mytwitter/components/my_input_alert_box.dart';
 import 'package:mytwitter/models/user.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
 import 'package:mytwitter/services/database/database_provider.dart';
@@ -28,6 +29,9 @@ class _ProfilePageState extends State<ProfilePage> {
   UserProfile? user;
   String currentUserId = AuthService().getCurrentUid();
 
+  // text controller for bio
+  final bioTextController = TextEditingController();
+
   // loading
   bool _isloading = true;
 
@@ -53,11 +57,31 @@ class _ProfilePageState extends State<ProfilePage> {
   // show edit bio box
   void _showEditBioBox() {
     showDialog(
-      context: context, 
-      builder: (context) => AlertDialog(
-        content: TextField(),
-    )
-    );
+        context: context,
+        builder: (context) => MyInputAlertBox(
+            textEditingController: bioTextController,
+            hinttext: "Edit bio...",
+            onPressed: saveBio,
+            onPressedText: "Save"));
+  }
+
+  // save updated bio
+  Future<void> saveBio() async {
+    // start loading..
+    setState(() {
+      _isloading = true;
+    });
+
+    // update bio
+    await databaseProvider.updateBio(bioTextController.text);
+
+    // reload user
+    await loadUser();
+
+    // done loading..
+    setState(() {
+      _isloading = false;
+    });
   }
 
   // build ui
