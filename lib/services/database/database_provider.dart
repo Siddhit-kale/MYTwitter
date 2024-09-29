@@ -31,7 +31,6 @@ class DatabaseProvider extends ChangeNotifier {
 
   /*
     POSTS
-
   */
 
   // local list of posts
@@ -44,7 +43,20 @@ class DatabaseProvider extends ChangeNotifier {
   Future<void> postMessage(String message) async {
     // post message in firebase
     await _db.postMessageInFirebase(message);
+
+    // reload data from firebase
+    await loadAllPosts();
   }
 
   // fecth all posts
+  Future<void> loadAllPosts() async {
+    // get all posts from firebase
+    final allPosts = await _db.getAllPostsFronFirebase();
+
+    // update local data
+    _allPosts = allPosts;
+
+    // update Ui
+    notifyListeners();
+  }
 }

@@ -11,8 +11,6 @@
 
  */
 
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mytwitter/models/post.dart';
@@ -101,7 +99,7 @@ class DatabaseService {
         username: user.username,
         message: message,
         timestamp: Timestamp.now(),
-        lineCount: 0,
+        likeCount: 0,
         likeBy: [],
       );
 
@@ -121,6 +119,22 @@ class DatabaseService {
   // delete a message
 
   // Get all posts true firebase
+  Future<List<Post>> getAllPostsFronFirebase() async {
+    try {
+      QuerySnapshot snapshot = await _db
+
+          // go to collection -> posts
+          .collection("Posts")
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      // return as a list of posts
+      return snapshot.docs.map((doc) => Post.fromDocument(doc)).toList();
+    } catch (e) {
+      print(e);
+      return [];
+    }
+  }
 
   // get individual post
 

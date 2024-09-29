@@ -1,6 +1,8 @@
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mytwitter/components/my_drawer.dart';
 import 'package:mytwitter/components/my_input_alert_box.dart';
+import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/services/database/database_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -19,11 +21,26 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // provider
+  late final listeningProvider = Provider.of<DatabaseProvider>(context);
   late final databaseProvider =
       Provider.of<DatabaseProvider>(context, listen: false);
 
   // text controller
   final _messageController = TextEditingController();
+
+  // on startup,
+  @override
+  void initState() {
+    super.initState();
+
+    // let's load all the posts
+    loadAllPosts();
+  }
+
+  // load all posts
+  Future<void> loadAllPosts() async {
+    await databaseProvider.loadAllPosts();
+  }
 
   // show post message dialog box
   void _openPostMessageBox() {
@@ -65,6 +82,34 @@ class _HomePageState extends State<HomePage> {
         onPressed: _openPostMessageBox,
         child: const Icon(Icons.add),
       ),
+
+      // body: list of all posts
+      body: _buildPostList(listeningProvider.allPosts),
     );
+  }
+
+  // build list ui given list at point
+  Widget _buildPostList(List<Post> posts) {
+    return posts.isEmpty
+        ?
+        // post list is empty
+        const Center(
+            child: Text("Nothing Here.."),
+          )
+        :
+        // post list is not emepty
+        ListView.builder(
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              // get each individual post
+              
+              final post = posts[index];
+
+              // return post title Ui
+              return Container(
+                child: Text(post.message),
+              );
+            },
+          );
   }
 }

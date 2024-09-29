@@ -12,7 +12,7 @@ class Post {
   final String username;
   final String message;
   final Timestamp timestamp;
-  int lineCount;
+  final int likeCount;
   final List<String> likeBy;
 
   Post({
@@ -22,23 +22,27 @@ class Post {
     required this.username,
     required this.message,
     required this.timestamp,
-    required this.lineCount,
+    required this.likeCount,
     required this.likeBy,
   });
 
   // couvert a firestore document to a post object
-  factory Post.fromDocument(DocumentSnapshot doc) {
-    return Post(
-      id: doc.id,
-      uid: doc['uid'],
-      name: doc['name'],
-      username: doc['username'],
-      message: doc['message'],
-      timestamp: doc['timestamp'],
-      lineCount: doc['likes'],
-      likeBy: List<String>.from(doc['likedBy'] ?? []),
-    );
-  }
+factory Post.fromDocument(DocumentSnapshot doc) {
+  // Convert the document to a map of field data
+  final data = doc.data() as Map<String, dynamic>;
+
+  return Post(
+    id: doc.id,
+    uid: data['uid'] ?? '',
+    name: data['name'] ?? '',
+    username: data['username'] ?? '',
+    message: data['message'] ?? '',
+    timestamp: data['timestamp'] ?? Timestamp.now(),
+    likeCount: data['likes'] ?? 0,
+    likeBy: data.containsKey('likedBy') ? List<String>.from(data['likedBy']) : [],
+  );
+}
+
 
   // convert a post to a map
   Map<String, dynamic> toMap() {
@@ -48,7 +52,7 @@ class Post {
       'username': username,
       'message': message,
       'timestamp': timestamp,
-      'likes': lineCount,
+      'likes': likeCount,
       'likeBy': likeBy,
     };
   }
