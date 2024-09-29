@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:mytwitter/components/my_drawer.dart';
 import 'package:mytwitter/components/my_input_alert_box.dart';
+import 'package:mytwitter/components/my_post_title.dart';
+import 'package:mytwitter/helper/navigate_pages.dart';
 import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/services/database/database_provider.dart';
 import 'package:provider/provider.dart';
@@ -102,13 +104,15 @@ class _HomePageState extends State<HomePage> {
             itemCount: posts.length,
             itemBuilder: (context, index) {
               // get each individual post
-              
+
               final post = posts[index];
 
               // return post title Ui
-              return Container(
-                child: Text(post.message),
-              );
+              return MyPostTitle(
+                post: post,
+                onUserTap: () => goUserPage(context, post.uid),
+                onPostTap: () => goPostpage(context, post),
+                );
             },
           );
   }
