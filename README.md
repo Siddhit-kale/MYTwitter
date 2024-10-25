@@ -2,7 +2,7 @@
 
 A new Flutter project.
 
-  <img src=""C:\Users\Siddhit\Documents\Portfolio\Portfolio-master\src\Assets\Projects\My-twitter.png"" alt="Image 1" hieght="500" width="500"/>
+  <img src="blob:https://web.whatsapp.com/e8c8cc72-b219-46b9-8022-007f1ef97643" alt="Image 1" hieght="500" width="500"/>
 
 ## Getting Started
 
