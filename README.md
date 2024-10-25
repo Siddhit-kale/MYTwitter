@@ -2,7 +2,7 @@
 
 A new Flutter project.
 
-  ![Alt text](./images/My-twitter.png)
+  ![Alt text](images/My-twitter.png)
 
 ## Getting Started
 
