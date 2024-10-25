@@ -2,7 +2,7 @@
 
 A new Flutter project.
 
-  <img src="blob:https://web.whatsapp.com/e8c8cc72-b219-46b9-8022-007f1ef97643" alt="Image 1" hieght="500" width="500"/>
+  ![Alt text](./images/My-twitter.png)
 
 ## Getting Started
 
