@@ -8,8 +8,7 @@
  - Account Stuff
  - follow / unfollow
  - search users
-
- */
+*/
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,19 +22,14 @@ class DatabaseService {
   final _auth = FirebaseAuth.instance;
 
   /*
-      user profile
-
+      User Profile
   */
-  // save user profile
+  
+  // Save user profile
   Future<void> saveUserInfoInFirebase(
       {required String name, required String email}) async {
-    // get current uid
     String uid = _auth.currentUser!.uid;
-
-    // extract username from email
     String username = email.split('@')[0];
-
-    // create a user profile
     UserProfile user = UserProfile(
       uid: uid,
       name: name,
@@ -44,20 +38,14 @@ class DatabaseService {
       bio: '',
     );
 
-    // convert user info a mao so that we can store in firebase
     final userMap = user.toMap();
-
-    // save user info in firebase
     await _db.collection("Users").doc(uid).set(userMap);
   }
 
-  // get user info
+  // Get user info
   Future<UserProfile?> getUserfromFirebase(String uid) async {
     try {
-      // retrieve user info from firebase
       DocumentSnapshot userDoc = await _db.collection("Users").doc(uid).get();
-
-      // convert doc to user profile
       return UserProfile.fromDocumnet(userDoc);
     } catch (e) {
       print(e);
@@ -65,12 +53,9 @@ class DatabaseService {
     }
   }
 
-  // update user bio
+  // Update user bio
   Future<void> updateUserBioinFirebase(String bio) async {
-    // get current info
     String uid = AuthService().getCurrentUid();
-
-    // attempts to update in firebase
     try {
       await _db.collection("Users").doc(uid).update({'bio': bio});
     } catch (e) {
@@ -82,65 +67,114 @@ class DatabaseService {
       Post Message
   */
 
-  // post a message
-  Future<void> postMessageInFirebase(String message) async {
+  // Post a message
+Future<void> postMessageInFirebase(String message) async {
+  try {
+    // Get current user id
+    String uid = _auth.currentUser!.uid;
+
+    // Use this uid to get the user's profile
+    UserProfile? user = await getUserfromFirebase(uid);
+
+    // Create a new post
+    Post newPost = Post(
+      id: '', // Assign a unique ID if necessary or let Firestore handle it
+      uid: uid,
+      name: user!.name,
+      username: user.username,
+      message: message,
+      timestamp: Timestamp.now(),
+      likeCount: 0,
+      likeBy: [], // Ensure this matches the field name in your Post model
+    );
+
+    // Convert post object to map
+    Map<String, dynamic> newPostMap = newPost.toMap();
+
+    // Add to Firebase
+    await _db.collection("Posts").add(newPostMap);
+  } catch (e) {
+    print(e);
+  }
+}
+
+
+  // Get all posts from Firebase
+    Future<List<Post>> getAllPostsFromFirebase() async {
     try {
-      // get current user id
-      String uid = _auth.currentUser!.uid;
+        QuerySnapshot snapshot = await _db
+            .collection("Posts")
+            .orderBy('timestamp', descending: true)
+            .get();
 
-      // use this uid to get the user's profile'
-      UserProfile? user = await getUserfromFirebase(uid);
-
-      // create a new post
-      Post newPost = Post(
-        id: '',
-        uid: uid,
-        name: user!.name,
-        username: user.username,
-        message: message,
-        timestamp: Timestamp.now(),
-        likeCount: 0,
-        likeBy: [],
-      );
-
-      // convert post object -> map
-      Map<String, dynamic> newPostMap = newPost.toMap();
-
-      // add to firebase
-      await _db.collection("Posts").add(newPostMap);
+        return snapshot.docs.map((doc) => Post.fromDocument(doc)).toList();
+    } catch (e) {
+        print(e);
+        return [];
     }
+  }
 
-    // catch any errors..
-    catch (e) {
+
+  // Delete a message
+  Future<void> deletePostFromFirebase(String postId) async {
+    try {
+      await _db.collection("Posts").doc(postId).delete();
+    } catch (e) {
       print(e);
     }
   }
 
-  // delete a message
-
-  // Get all posts true firebase
-  Future<List<Post>> getAllPostsFronFirebase() async {
+  // Fetch all posts and initialize likes
+  Future<List<Post>> fetchPostsAndInitializeLikes() async {
     try {
-      QuerySnapshot snapshot = await _db
-
-          // go to collection -> posts
-          .collection("Posts")
-          .orderBy('timestamp', descending: true)
-          .get();
-
-      // return as a list of posts
+      QuerySnapshot snapshot = await _db.collection("Posts").get();
       return snapshot.docs.map((doc) => Post.fromDocument(doc)).toList();
     } catch (e) {
-      print(e);
+      print("Error fetching posts: $e");
       return [];
     }
   }
 
-  // get individual post
-
   /*
       Likes
   */
+
+  // Toggle like for a post
+  Future<void> toggleLikeInFirebase(String postId) async {
+    try {
+      String uid = _auth.currentUser!.uid;
+      DocumentReference postdoc = _db.collection("Posts").doc(postId);
+
+      await _db.runTransaction((transaction) async {
+        DocumentSnapshot postSnapshot = await transaction.get(postdoc);
+
+        if (postSnapshot.exists && postSnapshot.data() != null) {
+          Map<String, dynamic> postData = postSnapshot.data() as Map<String, dynamic>;
+
+          List<String> likedBy = List<String>.from(postData['likedBy'] ?? []);
+          int currentLikeCount = postData['likes'] ?? 0;
+
+          if (!likedBy.contains(uid)) {
+            likedBy.add(uid);
+            currentLikeCount++;
+          } else {
+            likedBy.remove(uid);
+            currentLikeCount--;
+          }
+
+         transaction.update(postdoc, {
+            'likes': currentLikeCount,
+            'likedBy': likedBy, // Ensure you are using likedBy
+        });
+
+        } else {
+          throw Exception("Post not found.");
+        }
+      });
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
 
   /*
       Comments
