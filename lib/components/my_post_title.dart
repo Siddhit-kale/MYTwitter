@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mytwitter/components/my_input_alert_box.dart';
 import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
 import 'package:mytwitter/services/database/database_provider.dart';
@@ -28,6 +29,16 @@ class _MyPostTitleState extends State<MyPostTitle> {
   late final DatabaseProvider listeningProvider =
       Provider.of<DatabaseProvider>(context); // Use listen: true for listening
 
+  // on startup,
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    // load comment for this post
+    _loadComments();
+  }
+
   // user tapped like or unlike
   void _toggleLikePost() async {
     try {
@@ -35,6 +46,43 @@ class _MyPostTitleState extends State<MyPostTitle> {
     } catch (e) {
       print(e);
     }
+  }
+
+  // comment text controller
+  final _commentController = TextEditingController();
+
+  // open comment box -> user want to type new comment
+  void _opencommentBox() {
+    showDialog(
+      context: context,
+      builder: (context) => MyInputAlertBox(
+        textEditingController: _commentController,
+        hinttext: "type a Comment",
+        onPressed: () async {
+          // add post in db
+          await _addComment();
+        },
+        onPressedText: "Post",
+      ),
+    );
+  }
+
+  // user tapped post to add comment
+  Future<void> _addComment() async {
+    if (_commentController.text.trim().isEmpty) return;
+
+    // attempt to post comment
+    try {
+      await databaseProvider.addComment(
+          widget.post.id, _commentController.text.trim());
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // load comment
+  Future<void> _loadComments() async {
+    await databaseProvider.loadComments(widget.post.id);
   }
 
   // show options for the post
@@ -98,9 +146,13 @@ class _MyPostTitleState extends State<MyPostTitle> {
     // Does the current user like this post?
     bool likedByCurrentUser =
         listeningProvider.isPostLikedByCurrentUser(widget.post.id);
+    print(likedByCurrentUser);
 
     // listen to like count
     int likeCount = listeningProvider.getLikeCount(widget.post.id);
+
+    // listen to comment count
+    int commentCount = listeningProvider.getComments(widget.post.id).length;
 
     // return container
     return GestureDetector(
@@ -166,21 +218,50 @@ class _MyPostTitleState extends State<MyPostTitle> {
             Row(
               children: [
                 // Like button
-                GestureDetector(
-                  onTap: _toggleLikePost,
-                  child: likedByCurrentUser
-                      ? const Icon(
-                          Icons.favorite,
-                          color: Colors.red,
-                        )
-                      : Icon(
-                          Icons.favorite_border,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                SizedBox(
+                  width: 60,
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _toggleLikePost,
+                        child: likedByCurrentUser
+                            ? const Icon(
+                                Icons.favorite,
+                                color: Colors.red,
+                              )
+                            : Icon(
+                                Icons.favorite_border,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                      ),
+
+                      const SizedBox(width: 5),
+
+                      // like count
+                      Text(likeCount != 0 ? likeCount.toString() : '',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary)),
+                    ],
+                  ),
                 ),
 
-                // like count
-                Text(likeCount.toString()),
+                // Comment Section
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _opencommentBox,
+                      child: Icon(
+                        Icons.comment,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+
+                    // Comment count
+                    Text(commentCount != 0 ? commentCount.toString() : '',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary)),
+                  ],
+                ),
               ],
             ),
           ],

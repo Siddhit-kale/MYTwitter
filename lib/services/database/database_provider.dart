@@ -6,7 +6,10 @@
   - Also, if one day we decide to change our backend, then it's much easier to manage and switch out the database.
 */
 
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
+import 'package:mytwitter/models/comment.dart';
 import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/models/user.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
@@ -100,11 +103,15 @@ class DatabaseProvider extends ChangeNotifier {
     // get current user id
     final currentUserID = _auth.getCurrentUser();
 
+    // clear liked posts for when the new user signs in, clear local data
+    _likedPosts.clear();
+
     // for each post, get like data
     for (var post in _allPosts) {
       _likeCounts[post.id] = post.likeCount; // Corrected assignment
 
-      if (post.likeBy.contains(currentUserID)) { // Ensure this uses likeBy
+      if (post.likeBy.contains(currentUserID)) {
+        // Ensure this uses likeBy
         // add this post id to local list of liked posts
         _likedPosts.add(post.id);
       }
@@ -112,48 +119,81 @@ class DatabaseProvider extends ChangeNotifier {
   }
 
   // toggle like
-  Future<void> toggleLike(String postID) async {
-    /*
+  // toggle like
+  Future<bool> toggleLike(String postID) async {
+    // Store original values to revert in case of failure
+    final likedPostOriginal = _likedPosts.toList();
+    final likedCountOriginal = Map<String, int>.from(_likeCounts);
 
-      this first part will update the local values first so that the ui feels immediate and responsive.
-      we will update the ui optimistically and restart back if anything goes wrong while writing to the database.
-
-    */
-
-    // store original values in case it fails
-    final likedPostOriginal = _likedPosts.toList(); // Use toList() to create a copy
-    final likedCountOriginal = Map<String, int>.from(_likeCounts); // Create a copy of like counts
-
-    // perform like/unlike
+    // Determine and update like/unlike status locally
+    bool isLiked;
     if (_likedPosts.contains(postID)) {
       _likedPosts.remove(postID);
       _likeCounts[postID] = (_likeCounts[postID] ?? 0) - 1;
+      isLiked = false; // Post is now unliked
     } else {
       _likedPosts.add(postID);
       _likeCounts[postID] = (_likeCounts[postID] ?? 0) + 1;
+      isLiked = true; // Post is now liked
     }
 
-    // update UI locally
+    // Update UI locally
     notifyListeners();
 
-    /*
-
-    update to the database
-
-    */
-
-    // attempt the like in the database
+    // Attempt to write the like status to the database
     try {
       await _db.toggleLikeInFirebase(postID);
-    }
+    } catch (e) {
+      // Revert back to the initial state if update fails
+      _likedPosts
+        ..clear()
+        ..addAll(likedPostOriginal);
+      _likeCounts
+        ..clear()
+        ..addAll(likedCountOriginal);
 
-    // revert back to initial state if update fails
-    catch (e) {
-      _likedPosts = likedPostOriginal;
-      _likeCounts = likedCountOriginal;
-
-      // update UI again
+      // Update UI again
       notifyListeners();
+      print("Error updating like status in database: $e");
+      rethrow;
     }
+
+    return isLiked; // Return the updated like status for the UI
+  }
+
+  /*
+
+  comment
+
+  */
+
+  // local list to comments
+  final Map<String, List<Comment>> _Comments = {};
+
+  // get comments locally
+  List<Comment> getComments(String postId) => _Comments[postId] ?? [];
+
+  // fetch comments from database for a post
+  Future<void> loadComments(String postId) async {
+    final allComments = await _db.getCommentsFromFirebase(postId);
+
+    _Comments[postId] = allComments;
+
+    notifyListeners();
+  }
+
+  // add a comment
+  Future<void> addComment(String postId, message) async {
+    await _db.addCommentInFirebase(postId, message);
+
+    await loadComments(postId);
+  }
+
+  // delete a comment
+  Future<void> deleteComment(String CommentId, postId) async {
+
+    await _db.deleteCommentInFirebase(CommentId);
+
+    await loadComments(postId);
   }
 }

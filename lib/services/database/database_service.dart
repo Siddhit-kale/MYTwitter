@@ -12,6 +12,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mytwitter/models/comment.dart';
 import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/models/user.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
@@ -24,7 +25,7 @@ class DatabaseService {
   /*
       User Profile
   */
-  
+
   // Save user profile
   Future<void> saveUserInfoInFirebase(
       {required String name, required String email}) async {
@@ -68,52 +69,50 @@ class DatabaseService {
   */
 
   // Post a message
-Future<void> postMessageInFirebase(String message) async {
-  try {
-    // Get current user id
-    String uid = _auth.currentUser!.uid;
-
-    // Use this uid to get the user's profile
-    UserProfile? user = await getUserfromFirebase(uid);
-
-    // Create a new post
-    Post newPost = Post(
-      id: '', // Assign a unique ID if necessary or let Firestore handle it
-      uid: uid,
-      name: user!.name,
-      username: user.username,
-      message: message,
-      timestamp: Timestamp.now(),
-      likeCount: 0,
-      likeBy: [], // Ensure this matches the field name in your Post model
-    );
-
-    // Convert post object to map
-    Map<String, dynamic> newPostMap = newPost.toMap();
-
-    // Add to Firebase
-    await _db.collection("Posts").add(newPostMap);
-  } catch (e) {
-    print(e);
-  }
-}
-
-
-  // Get all posts from Firebase
-    Future<List<Post>> getAllPostsFromFirebase() async {
+  Future<void> postMessageInFirebase(String message) async {
     try {
-        QuerySnapshot snapshot = await _db
-            .collection("Posts")
-            .orderBy('timestamp', descending: true)
-            .get();
+      // Get current user id
+      String uid = _auth.currentUser!.uid;
 
-        return snapshot.docs.map((doc) => Post.fromDocument(doc)).toList();
+      // Use this uid to get the user's profile
+      UserProfile? user = await getUserfromFirebase(uid);
+
+      // Create a new post
+      Post newPost = Post(
+        id: '', // Assign a unique ID if necessary or let Firestore handle it
+        uid: uid,
+        name: user!.name,
+        username: user.username,
+        message: message,
+        timestamp: Timestamp.now(),
+        likeCount: 0,
+        likeBy: [], // Ensure this matches the field name in your Post model
+      );
+
+      // Convert post object to map
+      Map<String, dynamic> newPostMap = newPost.toMap();
+
+      // Add to Firebase
+      await _db.collection("Posts").add(newPostMap);
     } catch (e) {
-        print(e);
-        return [];
+      print(e);
     }
   }
 
+  // Get all posts from Firebase
+  Future<List<Post>> getAllPostsFromFirebase() async {
+    try {
+      QuerySnapshot snapshot = await _db
+          .collection("Posts")
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) => Post.fromDocument(doc)).toList();
+    } catch (e) {
+      print(e);
+      return [];
+    }
+  }
 
   // Delete a message
   Future<void> deletePostFromFirebase(String postId) async {
@@ -149,7 +148,8 @@ Future<void> postMessageInFirebase(String message) async {
         DocumentSnapshot postSnapshot = await transaction.get(postdoc);
 
         if (postSnapshot.exists && postSnapshot.data() != null) {
-          Map<String, dynamic> postData = postSnapshot.data() as Map<String, dynamic>;
+          Map<String, dynamic> postData =
+              postSnapshot.data() as Map<String, dynamic>;
 
           List<String> likedBy = List<String>.from(postData['likedBy'] ?? []);
           int currentLikeCount = postData['likes'] ?? 0;
@@ -162,11 +162,10 @@ Future<void> postMessageInFirebase(String message) async {
             currentLikeCount--;
           }
 
-         transaction.update(postdoc, {
+          transaction.update(postdoc, {
             'likes': currentLikeCount,
             'likedBy': likedBy, // Ensure you are using likedBy
-        });
-
+          });
         } else {
           throw Exception("Post not found.");
         }
@@ -179,6 +178,58 @@ Future<void> postMessageInFirebase(String message) async {
   /*
       Comments
   */
+
+  // Add a comment to a post
+  Future<void> addCommentInFirebase(String postId, message) async {
+    try {
+      // get current user
+      String uid = _auth.currentUser!.uid;
+      UserProfile? user = await getUserfromFirebase(uid);
+
+      // create a new comment
+      Comment newComment = Comment(
+        id: '',
+        postId: postId,
+        uid: uid,
+        name: user!.name,
+        username: user.username,
+        message: message,
+        timestamp: Timestamp.now(),
+      );
+
+      // convert comment into map
+      Map<String, dynamic> newCommentMap = newComment.toMap();
+
+      // to store in firebase
+      await _db.collection("Comments").add(newCommentMap);
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // delete a comment from a post
+  Future<void> deleteCommentInFirebase(String commentId) async {
+    try {
+      await _db.collection("Comments").doc(commentId).delete();
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // fetch comment for a post
+  Future<List<Comment>> getCommentsFromFirebase(String postId) async {
+    try {
+      QuerySnapshot snapshot = await _db
+          .collection("Comments")
+          .where("postId", isEqualTo: postId)
+          .get();
+
+      return snapshot.docs.map((doc) => Comment.fromDocument(doc)).toList();
+    } catch (e) {
+      print(e);
+      return [];
+    }
+  }
 
   /*
       Account stuff
