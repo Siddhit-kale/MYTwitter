@@ -1,9 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mytwitter/components/my_bio_box.dart';
+import 'package:mytwitter/components/my_follow_button.dart';
 import 'package:mytwitter/components/my_input_alert_box.dart';
 import 'package:mytwitter/components/my_post_title.dart';
+import 'package:mytwitter/components/my_profile_state.dart';
 import 'package:mytwitter/models/user.dart';
+import 'package:mytwitter/pages/follow_list_page.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
 import 'package:mytwitter/services/database/database_provider.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +42,9 @@ class _ProfilePageState extends State<ProfilePage> {
   // loading
   bool _isloading = true;
 
+  // is following state
+  bool _isfollwing = false;
+
   // on startup,
   @override
   void initState() {
@@ -52,6 +57,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> loadUser() async {
     // get the user profile info
     user = await databaseProvider.userProfile(widget.uid);
+
+    // load followers & following for this user
+    await databaseProvider.loadUserFollowers(widget.uid);
+    await databaseProvider.loadUserFolloing(widget.uid);
+
+    // update Following state
+    _isfollwing = databaseProvider.isFollowing(widget.uid);
 
     // finished loading
     setState(() {
@@ -89,11 +101,55 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  // toggle follow -> follow / unfollow
+  Future<void> toggleFollow() async {
+    if (_isfollwing) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Unfollow"),
+          content: Text("Are you sure you want to unfollow"),
+          actions: [
+            // cancel
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+
+            TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await databaseProvider.unfollowUser(widget.uid);
+                },
+                child: const Text("Yes")),
+          ],
+        ),
+      );
+    }
+
+    // follow
+    else {
+      await databaseProvider.followUser(widget.uid);
+    }
+
+    // update isfollowing state
+    setState(() {
+      _isfollwing = !_isfollwing;
+    });
+  }
+
   // build ui
   @override
   Widget build(BuildContext context) {
     // get user posts
     final allUserPosts = listenableProvider.filterUserPosts(widget.uid);
+
+    // listen to following & follower count
+    final followerCount = listenableProvider.getFollowerCount(widget.uid);
+    final followingCount = listenableProvider.getFollowingCount(widget.uid);
+
+    // listen to is following
+    _isfollwing = listenableProvider.isFollowing(widget.uid);
 
     // scaffload
     return Scaffold(
@@ -112,13 +168,12 @@ class _ProfilePageState extends State<ProfilePage> {
             Center(
               child: Text(
                 _isloading ? '' : '@${user!.username}',
-                style:
-                    TextStyle(color: Theme.of(context).colorScheme.primary),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
-        
+
             const SizedBox(height: 25),
-        
+
             // profile picture
             Center(
               child: Container(
@@ -134,13 +189,33 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
-        
+
             const SizedBox(height: 25),
-        
+
             // profile stats -> number of posts / followers / following
-        
+            MyProfileState(
+              postCount: allUserPosts.length, 
+              followerCount: followerCount, 
+              followingCount: followingCount,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FollowListPage(uid: widget.uid,),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 25),
+
             // follow / unfollow button
-        
+
+            // only show if the user is viewing someone else's profile
+            if (user != null && user!.uid != currentUserId)
+              MyFollowButton(
+                onPressed: toggleFollow,
+                isFollowing: _isfollwing,
+              ),
+
             // edit bio
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -152,42 +227,44 @@ class _ProfilePageState extends State<ProfilePage> {
                     style:
                         TextStyle(color: Theme.of(context).colorScheme.primary),
                   ),
-                  GestureDetector(
-                    onTap: _showEditBioBox,
-                    child: Icon(
-                      Icons.settings,
-                      color: Theme.of(context).colorScheme.primary,
+
+                  // button
+                  // only show edit button if it's current user page
+                  if (user != null && user!.uid == currentUserId)
+                    GestureDetector(
+                      onTap: _showEditBioBox,
+                      child: Icon(
+                        Icons.settings,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
-        
+
             const SizedBox(height: 10),
-        
+
             // bio box
             MyBioBox(text: _isloading ? '...' : user!.bio),
-        
+
             Padding(
               padding: const EdgeInsets.only(left: 25.0, top: 25),
               child: Text(
-                "Posts", 
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary
-                  ),
-                ),
+                "Posts",
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
             ),
 
             // list of posts from users
             allUserPosts.isEmpty
                 ?
-        
+
                 // user posts is empty
                 const Center(
                     child: Text("No posts yet.."),
                   )
                 :
-        
+
                 // user posts is not empty
                 ListView.builder(
                     itemCount: allUserPosts.length,
@@ -196,13 +273,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     itemBuilder: (context, Index) {
                       // get individual post
                       final post = allUserPosts[Index];
-        
+
                       // post title ui
                       return MyPostTitle(
                         post: post,
                         onUserTap: () {},
                         onPostTap: () => goPostpage(context, post),
-                        );
+                      );
                     },
                   ),
           ],
