@@ -64,6 +64,50 @@ class DatabaseService {
     }
   }
 
+  // Delete user info
+  Future<void> deleteUserInfoFromFirebase(String uid) async {
+    WriteBatch batch = _db.batch();
+
+    // delete user doc
+    DocumentReference userDoc = _db.collection("Users").doc(uid);
+    batch.delete(userDoc);
+
+    // delete user posts
+    QuerySnapshot userPosts =
+        await _db.collection("Posts").where('uid', isEqualTo: uid).get();
+
+    for (var post in userPosts.docs) {
+      batch.delete(post.reference);
+    }
+
+    // delete users comments
+    QuerySnapshot usercomment =
+        await _db.collection("Comments").where('uid', isEqualTo: uid).get();
+
+    for (var comment in usercomment.docs) {
+      batch.delete(comment.reference);
+    }
+
+    // delete likes done by this user
+    QuerySnapshot allPosts = await _db.collection("Posts").get();
+    for (QueryDocumentSnapshot post in allPosts.docs) {
+      Map<String, dynamic> postData = post.data() as Map<String, dynamic>;
+      var likedBy = postData['likedBy'] as List<dynamic>? ?? [];
+
+      if (likedBy.contains(uid)) {
+        batch.update(post.reference, {
+          'likedBy': FieldValue.arrayRemove([uid]),
+          'likes': FieldValue.increment(-1),
+        });
+      }
+    }
+
+    // update followers and following
+
+    // commit batch
+    await batch.commit();
+  }
+
   /*
       Post Message
   */
@@ -236,83 +280,81 @@ class DatabaseService {
   */
 
   // report user
- Future<void> reportUserInFirebase(String postId, String userId) async {
-  final currentUserId = _auth.currentUser?.uid;
+  Future<void> reportUserInFirebase(String postId, String userId) async {
+    final currentUserId = _auth.currentUser?.uid;
 
-  // Check if the currentUserId is null
-  if (currentUserId == null) {
-    print('User not authenticated');
-    return;
+    // Check if the currentUserId is null
+    if (currentUserId == null) {
+      print('User not authenticated');
+      return;
+    }
+
+    // create a report
+    final report = {
+      'reportedBy': currentUserId,
+      'messageId': postId,
+      'messageOwnerId': userId,
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    // Save report to Firestore under a new "reports" collection
+    await FirebaseFirestore.instance.collection('reports').add(report);
   }
-
-  // create a report
-  final report = {
-    'reportedBy': currentUserId,
-    'messageId': postId,
-    'messageOwnerId': userId,
-    'timestamp': FieldValue.serverTimestamp(),
-  };
-
-  // Save report to Firestore under a new "reports" collection
-  await FirebaseFirestore.instance.collection('reports').add(report);
-}
-
 
 // Block user
-Future<void> blockUserInFirebase(String userId) async {
-  final currentUserId = _auth.currentUser?.uid;
+  Future<void> blockUserInFirebase(String userId) async {
+    final currentUserId = _auth.currentUser?.uid;
 
-  try {
-    // Store the blocked user's uid directly
-    await _db
-        .collection("Users")
-        .doc(currentUserId)
-        .collection("BlockedUsers")
-        .doc(userId) 
-        .set({});
+    try {
+      // Store the blocked user's uid directly
+      await _db
+          .collection("Users")
+          .doc(currentUserId)
+          .collection("BlockedUsers")
+          .doc(userId)
+          .set({});
+    } catch (e) {
+      print(e);
+    }
   }
-  catch (e)
-  {
-    print(e); 
-  }
-}
 
 // Unblock user
-Future<void> unblockUserInFirebase(String blockedUserId) async {
-  final currentUserId = _auth.currentUser?.uid;
+  Future<void> unblockUserInFirebase(String blockedUserId) async {
+    final currentUserId = _auth.currentUser?.uid;
 
-  try {
-    await _db
-        .collection("Users")
-        .doc(currentUserId)
-        .collection("BlockedUsers")
-        .doc(blockedUserId)
-        .delete();
-  } catch (e) {
-    print(e);
+    try {
+      await _db
+          .collection("Users")
+          .doc(currentUserId)
+          .collection("BlockedUsers")
+          .doc(blockedUserId)
+          .delete();
+    } catch (e) {
+      print(e);
+    }
   }
-}
 
 // Get list of blocked user ids
-Future<List<String>> getBlockedUidsFromFirebase() async {
-  final currentUserId = _auth.currentUser?.uid;
-  if (currentUserId == null) return [];
+  Future<List<String>> getBlockedUidsFromFirebase() async {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) return [];
 
-  try {
-    final snapshot = await _db.collection("Users")
-        .doc(currentUserId)
-        .collection("BlockedUsers")
-        .get();
+    try {
+      final snapshot = await _db
+          .collection("Users")
+          .doc(currentUserId)
+          .collection("BlockedUsers")
+          .get();
 
-    final blockedIds = snapshot.docs.map((doc) => doc.id).toList();
-    print('Blocked user IDs: $blockedIds'); // Debug blocked IDs
+      final blockedIds = snapshot.docs.map((doc) => doc.id).toList();
+      print('Blocked user IDs: $blockedIds'); // Debug blocked IDs
 
-    return blockedIds;
-  } catch (e) {
-    print('Error fetching blocked user IDs: $e');
-    return [];
+      return blockedIds;
+    } catch (e) {
+      print('Error fetching blocked user IDs: $e');
+      return [];
+    }
   }
-}
 
   /*
       Follow

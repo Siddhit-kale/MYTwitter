@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mytwitter/components/my_settings_title.dart';
+import 'package:mytwitter/helper/navigate_pages.dart';
 import 'package:mytwitter/themes/theme_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -42,7 +43,28 @@ class SettingsPage extends StatelessWidget {
                 Provider.of<ThemeProvider>(context, listen: false).isDarkMode,
             ),
             
-            )
+            ),
+
+            // Block User Tile
+            MySettingsTitle(
+              title: "Blocked Users",
+              action: IconButton(
+                onPressed: () => goToBlockedUserPage(context),
+                icon: Icon(
+                  Icons.arrow_forward, 
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+
+            MySettingsTitle(
+            title: "Account Settings", 
+            action: IconButton(
+              onPressed: () => goAccountSettingsPage(context), 
+              icon: const Icon(Icons.arrow_forward),
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
         ],
       ),
 

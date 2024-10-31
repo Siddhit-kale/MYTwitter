@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mytwitter/services/database/database_service.dart';
 
 /*
   Authatication Service
@@ -47,4 +48,16 @@ class AuthService {
   }
 
   // delete account
+  Future<void> deleteAccount() async {
+    // get current uid
+    User? user = getCurrentUser();
+
+    if (user != null) {
+      // delete user's data from fileStore
+      await DatabaseService().deleteUserInfoFromFirebase(user.uid);
+
+      // delete user's auth record
+      await user.delete();
+    }
+  }
 }
