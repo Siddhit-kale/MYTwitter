@@ -55,16 +55,29 @@ class DatabaseProvider extends ChangeNotifier {
 
   // fetch all posts
   Future<void> loadAllPosts() async {
-    // Corrected method name
-    final allPosts = await _db.getAllPostsFromFirebase();
-    _allPosts = allPosts;
 
-    // Initialize local like data
-    initializeLikeMap();
+  // Retrieve all posts
+  final allPosts = await _db.getAllPostsFromFirebase();
 
-    // Update UI
-    notifyListeners();
-  }
+  // Fetch blocked user IDs
+  final blockUserIds = await _db.getBlockedUidsFromFirebase();
+
+  // Check for null or empty posts
+  _allPosts = allPosts
+      .where((post) {
+        if (post == null) {
+          print('Skipping null or non-existent post');
+          return false;
+        }
+        // Check if post's uid matches any blocked user IDs
+        return !blockUserIds.contains(post.uid);
+      })
+      .toList();
+
+  // Initialize local like data
+  initializeLikeMap();
+  notifyListeners();
+}
 
   // filter and return posts
   List<Post> filterUserPosts(String uid) {
@@ -108,17 +121,15 @@ class DatabaseProvider extends ChangeNotifier {
 
     // for each post, get like data
     for (var post in _allPosts) {
-      _likeCounts[post.id] = post.likeCount; // Corrected assignment
+      _likeCounts[post.id] = post.likeCount; 
 
       if (post.likeBy.contains(currentUserID)) {
-        // Ensure this uses likeBy
-        // add this post id to local list of liked posts
+        // Ensure this uses likeByed posts
         _likedPosts.add(post.id);
       }
     }
   }
 
-  // toggle like
   // toggle like
   Future<bool> toggleLike(String postID) async {
     // Store original values to revert in case of failure
@@ -191,9 +202,59 @@ class DatabaseProvider extends ChangeNotifier {
 
   // delete a comment
   Future<void> deleteComment(String CommentId, postId) async {
-
     await _db.deleteCommentInFirebase(CommentId);
 
     await loadComments(postId);
+  }
+
+  /*
+
+  Account Stuff
+
+  */
+
+  // local list of blocked users
+  List<UserProfile> _blockedUsers = [];
+
+  // get list of blocked users
+  List<UserProfile> get blockedUsers => _blockedUsers;
+
+  // fetch blocked Users
+  Future<void> loadBlockedUsers() async {
+    final blockedUserIds = await _db.getBlockedUidsFromFirebase();
+
+    final blockedUserData = await Future.wait(
+        blockedUserIds.map((id) => _db.getUserfromFirebase(id)));
+
+    _blockedUsers = blockedUserData.whereType<UserProfile>().toList();
+
+    notifyListeners();
+  }
+
+  // block user
+  Future<void> blockUser(String userId) async {
+    await _db.blockUserInFirebase(userId);
+
+    await loadBlockedUsers();
+
+    await loadAllPosts();
+
+    notifyListeners();
+  }
+
+  // unblock user
+  Future<void> unblockUser(String blockedUserId) async {
+    await _db.unblockUserInFirebase(blockedUserId);
+
+    await loadAllPosts();
+
+    await loadBlockedUsers();
+
+    notifyListeners();
+  }
+
+  // report user and post
+  Future<void> reportUser(String postId, userId) async {
+    await _db.reportUserInFirebase(postId, userId);
   }
 }

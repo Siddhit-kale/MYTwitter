@@ -235,6 +235,85 @@ class DatabaseService {
       Account stuff
   */
 
+  // report user
+ Future<void> reportUserInFirebase(String postId, String userId) async {
+  final currentUserId = _auth.currentUser?.uid;
+
+  // Check if the currentUserId is null
+  if (currentUserId == null) {
+    print('User not authenticated');
+    return;
+  }
+
+  // create a report
+  final report = {
+    'reportedBy': currentUserId,
+    'messageId': postId,
+    'messageOwnerId': userId,
+    'timestamp': FieldValue.serverTimestamp(),
+  };
+
+  // Save report to Firestore under a new "reports" collection
+  await FirebaseFirestore.instance.collection('reports').add(report);
+}
+
+
+// Block user
+Future<void> blockUserInFirebase(String userId) async {
+  final currentUserId = _auth.currentUser?.uid;
+
+  try {
+    // Store the blocked user's uid directly
+    await _db
+        .collection("Users")
+        .doc(currentUserId)
+        .collection("BlockedUsers")
+        .doc(userId) 
+        .set({});
+  }
+  catch (e)
+  {
+    print(e); 
+  }
+}
+
+// Unblock user
+Future<void> unblockUserInFirebase(String blockedUserId) async {
+  final currentUserId = _auth.currentUser?.uid;
+
+  try {
+    await _db
+        .collection("Users")
+        .doc(currentUserId)
+        .collection("BlockedUsers")
+        .doc(blockedUserId)
+        .delete();
+  } catch (e) {
+    print(e);
+  }
+}
+
+// Get list of blocked user ids
+Future<List<String>> getBlockedUidsFromFirebase() async {
+  final currentUserId = _auth.currentUser?.uid;
+  if (currentUserId == null) return [];
+
+  try {
+    final snapshot = await _db.collection("Users")
+        .doc(currentUserId)
+        .collection("BlockedUsers")
+        .get();
+
+    final blockedIds = snapshot.docs.map((doc) => doc.id).toList();
+    print('Blocked user IDs: $blockedIds'); // Debug blocked IDs
+
+    return blockedIds;
+  } catch (e) {
+    print('Error fetching blocked user IDs: $e');
+    return [];
+  }
+}
+
   /*
       Follow
   */
