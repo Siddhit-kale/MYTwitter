@@ -159,6 +159,10 @@ class _ProfilePageState extends State<ProfilePage> {
         appBar: AppBar(
           title: Text(_isloading ? '' : user!.name),
           foregroundColor: Theme.of(context).colorScheme.primary,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => goHomePage(context),
+            ),
         ),
 
         //body
@@ -205,9 +209,8 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
 
-          const SizedBox(height: 25),
-
             // follow / unfollow button
+            const SizedBox(height: 5),
 
             // only show if the user is viewing someone else's profile
             if (user != null && user!.uid != currentUserId)
@@ -215,6 +218,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 onPressed: toggleFollow,
                 isFollowing: _isfollwing,
               ),
+            
+            const SizedBox(height: 5),
 
             // edit bio
             Padding(

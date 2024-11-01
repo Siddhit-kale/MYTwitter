@@ -73,7 +73,7 @@ class _FollowListPageState extends State<FollowListPage> {
               indicatorColor: Colors.black,
 
               // tabs
-              tabs: [
+              tabs: const [
                 Tab(text: "Followers"),
                 Tab(text: "Following"),
               ],

@@ -413,9 +413,22 @@ class DatabaseService {
         await _db.collection("Users").doc(uid).collection("Following").get();
 
     return snapshot.docs.map((doc) => doc.id).toList();
-  }  
+  }
 
   /*
       Search user
   */
+  Future<List<UserProfile>> searchUserInFirebase(String searchTerm) async {
+    try {
+      QuerySnapshot snapshot = await _db
+          .collection("Users")
+          .where('username', isGreaterThanOrEqualTo: searchTerm)
+          .where('username', isLessThanOrEqualTo: '$searchTerm\uf8ff')
+          .get();
+
+      return snapshot.docs.map((doc) => UserProfile.fromDocumnet(doc)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
 }

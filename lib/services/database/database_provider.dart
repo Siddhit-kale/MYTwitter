@@ -6,6 +6,7 @@
   - Also, if one day we decide to change our backend, then it's much easier to manage and switch out the database.
 */
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:mytwitter/models/comment.dart';
 import 'package:mytwitter/models/post.dart';
@@ -38,9 +39,11 @@ class DatabaseProvider extends ChangeNotifier {
 
   // local list of posts
   List<Post> _allPosts = [];
+  List<Post> _followingPosts = [];
 
   // get posts
   List<Post> get allPosts => _allPosts;
+  List<Post> get followingPosts => _followingPosts;
 
   // post message
   Future<void> postMessage(String message) async {
@@ -69,14 +72,34 @@ class DatabaseProvider extends ChangeNotifier {
       return !blockUserIds.contains(post.uid);
     }).toList();
 
+    // fillter out the following posts
+    loadFollowingPosts();
+
     // Initialize local like data
     initializeLikeMap();
+
     notifyListeners();
   }
 
   // filter and return posts
   List<Post> filterUserPosts(String uid) {
     return _allPosts.where((post) => post.uid == uid).toList();
+  }
+
+  // load following posts => posts from users thaat the current user follow
+  Future<void> loadFollowingPosts() async {
+    // get current uid
+    String currentUid = _auth.getCurrentUid();
+
+    // get list of uid that the current user logged in user follows from firebase
+    final followingUserIds = await _db.getFollowingUidsFromFirebase(currentUid);
+
+    // filter all posts to be the users for the following tab
+    _followingPosts =
+        _allPosts.where((post) => followingUserIds.contains(post.uid)).toList();
+
+    // update UI
+    notifyListeners();
   }
 
   // delete post
@@ -483,6 +506,34 @@ class DatabaseProvider extends ChangeNotifier {
       _followingProfile[uid] = followingProfiles; // Use `followingProfiles`
 
       // update UI
+      notifyListeners();
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  /*
+
+    Search Users
+
+  */
+
+  // list of search result
+  List<UserProfile> _searchResult = [];
+
+  // get list of search result
+  List<UserProfile> get searchResult => _searchResult;
+
+  // method to search for a user
+  Future<void> searchUsers(String searchTerm) async {
+    try {
+      // search user in firebase
+      final result = await _db.searchUserInFirebase(searchTerm);
+
+      // update local data
+      _searchResult = result;
+
+      // update ui
       notifyListeners();
     } catch (e) {
       print(e);

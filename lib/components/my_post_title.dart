@@ -1,5 +1,7 @@
+import 'package:date_format/date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:mytwitter/components/my_input_alert_box.dart';
+import 'package:mytwitter/helper/time_formatter.dart';
 import 'package:mytwitter/models/post.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
 import 'package:mytwitter/services/database/database_provider.dart';
@@ -326,6 +328,14 @@ class _MyPostTitleState extends State<MyPostTitle> {
                             color: Theme.of(context).colorScheme.primary)),
                   ],
                 ),
+
+                const Spacer(),
+
+                // timestamp
+                Text(formatTimeStamp(widget.post.timestamp),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                ),),
               ],
             ),
           ],

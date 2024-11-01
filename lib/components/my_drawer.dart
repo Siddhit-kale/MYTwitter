@@ -4,6 +4,8 @@ import 'package:mytwitter/pages/profile_page.dart';
 import 'package:mytwitter/pages/settings_page.dart';
 import 'package:mytwitter/services/auth/auth_service.dart';
 
+import '../pages/search_page.dart';
+
 /*
 this is to access to the left side app bar
 */
@@ -74,6 +76,20 @@ class MyDrawer extends StatelessWidget {
               ),
 
               //search list title
+              MyDrawerTitle(
+                title: "S E A R C H",
+                icon: Icons.search,
+                onTap: () {
+                  //pop menu drawer
+                  Navigator.pop(context);
+
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SearchPage(),
+                      ));
+                },
+              ),
 
               //settings list title
               MyDrawerTitle(

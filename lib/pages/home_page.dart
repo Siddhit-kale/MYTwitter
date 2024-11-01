@@ -68,25 +68,46 @@ class _HomePageState extends State<HomePage> {
   // build ui
   @override
   Widget build(BuildContext context) {
-    // scaffold
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      drawer: MyDrawer(),
+  
+    return DefaultTabController(
+      length: 2,
 
-      // App bar
-      appBar: AppBar(
-        title: const Text("H O M E"),
-        foregroundColor: Theme.of(context).colorScheme.primary,
+      // scaffold
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        drawer: MyDrawer(),
+      
+        // App bar
+        appBar: AppBar(
+          title: const Text("H O M E"),
+          foregroundColor: Theme.of(context).colorScheme.primary,
+           bottom: TabBar(
+              dividerColor: const Color.fromARGB(0, 0, 0, 0),
+              labelColor: Colors.black,
+              unselectedLabelColor: Theme.of(context).colorScheme.primary,
+              indicatorColor: Colors.black,
+
+              // tabs
+              tabs: const [
+                Tab(text: "For You"),
+                Tab(text: "Following"),
+              ],
+            ),
+        ),
+      
+        // floating action button
+        floatingActionButton: FloatingActionButton(
+          onPressed: _openPostMessageBox,
+          child: const Icon(Icons.add),
+        ),
+      
+        // body: list of all posts
+        body: TabBarView(children: [
+          _buildPostList(listeningProvider.allPosts),
+          _buildPostList(listeningProvider.followingPosts),
+          ],
+        ),
       ),
-
-      // floating action button
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openPostMessageBox,
-        child: const Icon(Icons.add),
-      ),
-
-      // body: list of all posts
-      body: _buildPostList(listeningProvider.allPosts),
     );
   }
 
